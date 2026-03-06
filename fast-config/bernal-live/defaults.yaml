@@ -1,0 +1,40 @@
+﻿# yaml-language-server: $schema=../../fast/stages/schemas/defaults.schema.json
+
+global:
+  billing_account: 01822A-82C726-7D1D60
+  organization:
+    domain: bernal.live
+    id: 874229980578
+    customer_id: C044gz3of
+
+observability:
+  project_id: $project_ids:log-0
+  number: $project_numbers:log-0
+
+projects:
+  defaults:
+    prefix: brnllab
+    locations:
+      bigquery: us-central1
+      logging: us-central1
+      storage: us-central1
+  overrides: {}
+
+context:
+  email_addresses:
+    gcp-organization-admins: gcp-org-admins@bernal.live
+  iam_principals:
+    gcp-organization-admins: group:gcp-org-admins@bernal.live
+  locations:
+    primary: us-central1
+
+output_files:
+  local_path: C:/Users/Ezra/Documents/dev/cloud-foundation-fabric/fast-config/bernal-live
+  storage_bucket: $storage_buckets:iac-0/iac-outputs
+  providers:
+    0-org-setup:
+      bucket: $storage_buckets:iac-0/iac-org-state
+      service_account: $iam_principals:service_accounts/iac-0/iac-org-rw
+    0-org-setup-ro:
+      bucket: $storage_buckets:iac-0/iac-org-state
+      service_account: $iam_principals:service_accounts/iac-0/iac-org-ro
