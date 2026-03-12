@@ -309,6 +309,18 @@ terraform init -migrate-state
 terraform apply
 ```
 
+For this stage, if you are reattaching to the remote GCS backend from another machine or shell session, use the exact sequence below from the `fast/stages/0-org-setup` directory. Clearing the quota-project environment variables is important here, as stale values can cause `USER_PROJECT_DENIED` errors after the backend migration.
+
+```powershell
+Remove-Item Env:GOOGLE_CLOUD_QUOTA_PROJECT -ErrorAction SilentlyContinue
+Remove-Item Env:GOOGLE_QUOTA_PROJECT -ErrorAction SilentlyContinue
+gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf .\0-org-setup-providers.tf
+terraform init -reconfigure -no-color
+terraform plan -no-color
+```
+
+The command above was verified against the current Stage 0 deployment and returns `No changes` when run from the same configuration used to bootstrap the environment.
+
 ## Default factory datasets
 
 A few example datasets are included with the stage, each implementing a different widely used organizational design. The datasets can be used as-is, potentially with slight changes to better suit specific use cases, or they can serve as a starting point to implement radically different approaches.

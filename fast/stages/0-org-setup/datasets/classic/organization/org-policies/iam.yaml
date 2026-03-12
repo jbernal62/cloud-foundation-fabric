@@ -23,16 +23,6 @@ iam.allowedPolicyMemberDomains:
     - allow:
         values:
           - is:${organization.customer_id}
-      condition:
-        title: Restrict member domains
-        expression: |
-          !resource.matchTag('${organization.id}/org-policies', 'allowed-policy-member-domains-all')
-    - allow:
-        all: true
-      condition:
-        title: Allow any member domain
-        expression: |
-          resource.matchTag('${organization.id}/org-policies', 'allowed-policy-member-domains-all')
 
 # For Workforce identity use-cases:
 # Switch from the above iam.allowedPolicyMemberDomains to the below iam.managed.allowedPolicyMembers configuration

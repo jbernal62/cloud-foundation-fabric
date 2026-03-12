@@ -26,7 +26,7 @@ locals {
   _folders_raw = merge(
     var.folders,
     {
-      for f in local._folders_files : dirname(f) => yamldecode(file(
+      for f in local._folders_files : replace(dirname(f), "\\", "/") => yamldecode(file(
         "${coalesce(local.paths.folders, "-")}/${f}"
       ))
     }

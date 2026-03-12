@@ -16,13 +16,13 @@
 
 terraform {
   backend "gcs" {
-    bucket                      = "brnllab-prod-iac-core-0-iac-org-state"
-    impersonate_service_account = "iac-org-rw@brnllab-prod-iac-core-0.iam.gserviceaccount.com"
+    bucket                      = "brnfresh-prod-iac-core-0-iac-org-state"
+    impersonate_service_account = "iac-org-rw@brnfresh-prod-iac-core-0.iam.gserviceaccount.com"
   }
 }
 provider "google" {
-  impersonate_service_account = "iac-org-rw@brnllab-prod-iac-core-0.iam.gserviceaccount.com"
+  impersonate_service_account = "iac-org-rw@brnfresh-prod-iac-core-0.iam.gserviceaccount.com"
 }
 provider "google-beta" {
-  impersonate_service_account = "iac-org-rw@brnllab-prod-iac-core-0.iam.gserviceaccount.com"
+  impersonate_service_account = "iac-org-rw@brnfresh-prod-iac-core-0.iam.gserviceaccount.com"
 }

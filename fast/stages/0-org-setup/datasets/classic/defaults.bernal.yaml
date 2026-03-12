@@ -13,7 +13,7 @@ observability:
 
 projects:
   defaults:
-    prefix: brnllab
+    prefix: brnfresh
     locations:
       bigquery: us-central1
       logging: us-central1
@@ -29,7 +29,7 @@ context:
     primary: us-central1
 
 output_files:
-  local_path: C:/Users/Ezra/Documents/dev/cloud-foundation-fabric/fast-config/bernal-live
+  local_path: C:/Users/jefer/Documents/dev/cloud-foundation-fabric/fast-config/bernal-live
   storage_bucket: $storage_buckets:iac-0/iac-outputs
   providers:
     0-org-setup:

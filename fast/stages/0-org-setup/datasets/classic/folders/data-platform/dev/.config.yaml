@@ -15,7 +15,6 @@
 # yaml-language-server: $schema=../../../../../schemas/folder.schema.json
 
 name: Development
-parent: folders/563031405216
 iam_by_principals:
   $iam_principals:service_accounts/iac-0/iac-dp-dev-rw:
     - roles/logging.admin
