@@ -1,0 +1,35 @@
+name: stage0-apply
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'fast/stages/0-org-setup/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fast/stages/0-org-setup
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/660895060666/locations/global/workloadIdentityPools/default/providers/github-default
+          service_account: iac-org-cicd-rw@brnfresh-prod-iac-core-0.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf ./0-org-setup-providers.tf
+      - run: terraform init -reconfigure -no-color
+      - run: terraform apply -auto-approve -no-color
