@@ -13,6 +13,14 @@
     - [Local output files storage](#local-output-files-storage)
     - [Init and apply the stage](#init-and-apply-the-stage)
   - [Provider setup and final apply cycle](#provider-setup-and-final-apply-cycle)
+- [Operating Stage 0](#operating-stage-0)
+  - [Where to make changes](#where-to-make-changes)
+  - [Adding or changing folders](#adding-or-changing-folders)
+  - [Changing organization policies](#changing-organization-policies)
+  - [Changing organization IAM, tags, logging, and contacts](#changing-organization-iam-tags-logging-and-contacts)
+  - [How to run Stage 0 safely](#how-to-run-stage-0-safely)
+  - [CI/CD for Stage 0](#cicd-for-stage-0)
+- [GitHub CI/CD Setup (PowerShell)](#github-cicd-setup-powershell)
 - [Default factory datasets](#default-factory-datasets)
   - ["Classic FAST" dataset](#classic-fast-dataset)
   - ["Hardened" dataset](#hardened-dataset)
@@ -51,6 +59,8 @@ It heavily relies on a new [project factory module](../../../modules/project-fac
 The default set of YAML configuration files in the `data` folder mirrors the traditional FAST layout, and implements full compatibility with existing FAST stages like VPC-SC, security, networking, etc.
 
 The default configuration can be used as a starting point for radically different Landing Zone designs, or it can be trimmed down to the bare minimum required for a secure, organization-level configuration with a working project factory.
+
+For a practical operating guide for this specific environment, including remote state usage and GitHub CI/CD setup, refer to [STAGE0_OPERATIONS_RUNBOOK.md](./STAGE0_OPERATIONS_RUNBOOK.md).
 
 ## Quickstart
 
@@ -320,6 +330,367 @@ terraform plan -no-color
 ```
 
 The command above was verified against the current Stage 0 deployment and returns `No changes` when run from the same configuration used to bootstrap the environment.
+
+## Operating Stage 0
+
+This section documents the day-2 operating model for this stage: where to make changes, which files control which resources, and how to run the stage so that Terraform always uses the remote GCS backend.
+
+### Where to make changes
+
+For the default classic dataset, the main places to edit are:
+
+- stage defaults: `datasets/classic/defaults.yaml` or your custom defaults file such as `datasets/classic/defaults.bernal.yaml`
+- folder hierarchy and folder-level IAM/tags: `datasets/classic/folders`
+- organization IAM, logging, tags, contacts, and org-level settings: `datasets/classic/organization`
+- org policies: `datasets/classic/organization/org-policies`
+- tag definitions: `datasets/classic/organization/tags`
+- project definitions and per-project resources: `datasets/classic/projects`
+- CI/CD workflow generation settings: `datasets/classic/cicd.yaml`
+
+If `0-org-setup.auto.tfvars` points to a custom defaults file or a different dataset, use those paths instead of the defaults above.
+
+### Adding or changing folders
+
+Folders are modeled as a filesystem tree under `datasets/classic/folders`. Each folder is configured by a `.config.yaml` file.
+
+Examples:
+
+- top-level folder: `datasets/classic/folders/teams/.config.yaml`
+- nested folder: `datasets/classic/folders/security/dev/.config.yaml`
+
+To add a new top-level folder:
+
+1. create a new directory under `datasets/classic/folders`
+2. add a `.config.yaml` file in that directory
+3. commit the change
+4. run `terraform plan` from this stage directory or let the Stage 0 CI/CD pipeline run
+
+To add a nested folder:
+
+1. create the subdirectory under its parent folder
+2. add its `.config.yaml`
+3. commit and run the stage again
+
+This stage reads the folder structure directly from the filesystem, so the directory layout is part of the configuration.
+
+### Changing organization policies
+
+Organization policies should be changed in:
+
+- `datasets/classic/organization/org-policies`
+
+Each YAML file in that folder defines one or more organization policies. This is the best place to enable, disable, or change org-level policy rules.
+
+When changing existing policies:
+
+- edit the YAML file
+- run `terraform plan`
+- verify the policy diff
+- apply through your normal workflow
+
+When adopting a policy that already exists outside Terraform:
+
+- add it to `org_policies_imports` before the first managed apply for that policy
+- or add an explicit import block if you are recovering a brownfield deployment
+
+### Changing organization IAM, tags, logging, and contacts
+
+Use these locations:
+
+- organization-wide IAM and logging sinks: `datasets/classic/organization/.config.yaml`
+- tags and tag values: `datasets/classic/organization/tags`
+- org policy custom constraints and supporting org-level settings: `datasets/classic/organization`
+- essential contacts: `datasets/classic/organization/.config.yaml`
+
+Typical examples:
+
+- change who can administer the org: edit `datasets/classic/organization/.config.yaml`
+- add a new tag key/value: add or edit files under `datasets/classic/organization/tags`
+- change sink destinations or filters: edit `datasets/classic/organization/.config.yaml`
+
+### How to run Stage 0 safely
+
+Always run Terraform for this stage from:
+
+- `fast/stages/0-org-setup`
+
+Do not run it from your home directory or any other folder, even if you copy the provider file there. The remote state can be shared, but the Terraform configuration must come from this stage directory.
+
+For the current deployment, the verified remote-backend workflow is:
+
+```powershell
+cd C:\Users\jefer\Documents\dev\cloud-foundation-fabric\fast\stages\0-org-setup
+Remove-Item Env:GOOGLE_CLOUD_QUOTA_PROJECT -ErrorAction SilentlyContinue
+Remove-Item Env:GOOGLE_QUOTA_PROJECT -ErrorAction SilentlyContinue
+gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf .\0-org-setup-providers.tf
+terraform init -reconfigure -no-color
+terraform plan -no-color
+```
+
+This ensures Terraform is using:
+
+- the Stage 0 configuration in this directory
+- the generated provider file
+- the GCS backend bucket `brnfresh-prod-iac-core-0-iac-org-state`
+
+### CI/CD for Stage 0
+
+This stage supports CI/CD. The recommended model is:
+
+- pull requests use the read-only provider file and run `terraform plan`
+- merges to the main branch use the read-write provider file and run `terraform apply`
+
+Use these provider files from the outputs bucket:
+
+- read-write apply: `gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf`
+- read-only plan: `gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-ro-providers.tf`
+
+Recommended pipeline flow:
+
+1. checkout the repository
+2. change directory to `fast/stages/0-org-setup`
+3. copy the appropriate provider file from GCS
+4. run `terraform init -reconfigure`
+5. run `terraform plan` or `terraform apply`
+
+This guarantees the pipeline always uses the remote state in the bucket rather than local state.
+
+For example:
+
+```powershell
+cd C:\Users\jefer\Documents\dev\cloud-foundation-fabric\fast\stages\0-org-setup
+gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-ro-providers.tf .\0-org-setup-providers.tf
+terraform init -reconfigure -no-color
+terraform plan -no-color
+```
+
+And for apply:
+
+```powershell
+cd C:\Users\jefer\Documents\dev\cloud-foundation-fabric\fast\stages\0-org-setup
+gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf .\0-org-setup-providers.tf
+terraform init -reconfigure -no-color
+terraform apply -no-color
+```
+
+In practice, day-2 Stage 0 changes should be made in Git by editing the dataset YAML files, then promoted through the pipeline so the remote backend remains the source of truth.
+
+## GitHub CI/CD Setup (PowerShell)
+
+The procedure below configures GitHub Actions for Stage 0 using Workload Identity Federation and ensures all plans and applies use the remote GCS backend.
+
+Replace these values before you run the commands:
+
+- GitHub repository: `jbernal62/cloud-foundation-fabric`
+- GitHub owner: `jbernal62`
+- default branch: `master`
+
+All commands below are PowerShell commands.
+
+### 1. Update the Stage 0 CI/CD dataset files
+
+Run from the repository root:
+
+```powershell
+cd C:\Users\jefer\Documents\dev\cloud-foundation-fabric
+```
+
+Update the repository name in `fast/stages/0-org-setup/datasets/classic/cicd.yaml`:
+
+```powershell
+(Get-Content .\fast\stages\0-org-setup\datasets\classic\cicd.yaml) `
+  -replace 'name: myorg/0-org-setup', 'name: jbernal62/cloud-foundation-fabric' `
+  | Set-Content .\fast\stages\0-org-setup\datasets\classic\cicd.yaml
+```
+
+Then edit `fast/stages/0-org-setup/datasets/classic/projects/core/iac-0.yaml` and add or uncomment this block:
+
+```yaml
+workload_identity_pools:
+  default:
+    display_name: Default pool for CI/CD.
+    providers:
+      github-default:
+        display_name: GitHub (jbernal62).
+        attribute_condition: attribute.repository_owner=="jbernal62"
+        identity_provider:
+          oidc:
+            template: github
+```
+
+### 2. Apply Stage 0 so GCP creates the WIF provider and bindings
+
+```powershell
+cd C:\Users\jefer\Documents\dev\cloud-foundation-fabric\fast\stages\0-org-setup
+Remove-Item Env:GOOGLE_CLOUD_QUOTA_PROJECT -ErrorAction SilentlyContinue
+Remove-Item Env:GOOGLE_QUOTA_PROJECT -ErrorAction SilentlyContinue
+gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf .\0-org-setup-providers.tf
+terraform init -reconfigure -no-color
+terraform plan -no-color
+terraform apply -no-color
+```
+
+This step creates or updates:
+
+- the GitHub Workload Identity pool and provider in `brnfresh-prod-iac-core-0`
+- the CI/CD service account impersonation bindings for:
+  - `iac-org-cicd-ro@brnfresh-prod-iac-core-0.iam.gserviceaccount.com`
+  - `iac-org-cicd-rw@brnfresh-prod-iac-core-0.iam.gserviceaccount.com`
+
+### 3. Verify the generated provider files
+
+```powershell
+gcloud storage ls gs://brnfresh-prod-iac-core-0-iac-outputs/providers/
+```
+
+You should see:
+
+- `0-org-setup-providers.tf`
+- `0-org-setup-ro-providers.tf`
+
+### 4. Create the GitHub Actions workflows
+
+Create the workflows directory:
+
+```powershell
+cd C:\Users\jefer\Documents\dev\cloud-foundation-fabric
+New-Item -ItemType Directory -Force .\.github\workflows
+```
+
+Create `.github/workflows/stage0-plan.yaml` with this content:
+
+```yaml
+name: stage0-plan
+
+on:
+  pull_request:
+    paths:
+      - 'fast/stages/0-org-setup/**'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fast/stages/0-org-setup
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/660895060666/locations/global/workloadIdentityPools/default/providers/github-default
+          service_account: iac-org-cicd-ro@brnfresh-prod-iac-core-0.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-ro-providers.tf ./0-org-setup-providers.tf
+      - run: terraform init -reconfigure -no-color
+      - run: terraform plan -no-color
+```
+
+Create `.github/workflows/stage0-apply.yaml` with this content:
+
+```yaml
+name: stage0-apply
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'fast/stages/0-org-setup/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fast/stages/0-org-setup
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/660895060666/locations/global/workloadIdentityPools/default/providers/github-default
+          service_account: iac-org-cicd-rw@brnfresh-prod-iac-core-0.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf ./0-org-setup-providers.tf
+      - run: terraform init -reconfigure -no-color
+      - run: terraform apply -auto-approve -no-color
+```
+
+### 5. Commit and push the CI/CD configuration
+
+```powershell
+cd C:\Users\jefer\Documents\dev\cloud-foundation-fabric
+git add .\fast\stages\0-org-setup\datasets\classic\cicd.yaml
+git add .\fast\stages\0-org-setup\datasets\classic\projects\core\iac-0.yaml
+git add .\.github\workflows\stage0-plan.yaml
+git add .\.github\workflows\stage0-apply.yaml
+git add .\fast\stages\0-org-setup\README.md
+git commit -m "Configure Stage 0 GitHub CI/CD"
+git push origin master
+```
+
+### 6. Test the plan workflow
+
+```powershell
+cd C:\Users\jefer\Documents\dev\cloud-foundation-fabric
+git checkout -b test/stage0-plan
+```
+
+Make a harmless change under `fast/stages/0-org-setup`, then run:
+
+```powershell
+git add .
+git commit -m "Test Stage 0 plan pipeline"
+git push origin test/stage0-plan
+```
+
+Open a pull request and verify that `stage0-plan` succeeds.
+
+### 7. Test the apply workflow
+
+Merge the tested pull request to `master`. This should trigger `stage0-apply` and run Terraform against the remote state bucket.
+
+To verify from your workstation after the merge:
+
+```powershell
+cd C:\Users\jefer\Documents\dev\cloud-foundation-fabric\fast\stages\0-org-setup
+Remove-Item Env:GOOGLE_CLOUD_QUOTA_PROJECT -ErrorAction SilentlyContinue
+Remove-Item Env:GOOGLE_QUOTA_PROJECT -ErrorAction SilentlyContinue
+gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf .\0-org-setup-providers.tf
+terraform init -reconfigure -no-color
+terraform plan -no-color
+```
+
+Expected result:
+
+- `No changes. Your infrastructure matches the configuration.`
+
+This design ensures:
+
+- pull requests use the read-only CI/CD service account
+- merges use the read-write CI/CD service account
+- both workflows always use the remote state in `brnfresh-prod-iac-core-0-iac-org-state`
+- Stage 0 changes in Git become organization changes after merge
 
 ## Default factory datasets
 
