@@ -257,7 +257,7 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
 
-      - run: gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-ro-providers.tf ./0-org-setup-providers.tf
+      - run: gcloud storage cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-ro-providers.tf ./0-org-setup-providers.tf
       - run: terraform init -reconfigure -no-color
       - run: terraform plan -no-color
 ```
@@ -297,7 +297,7 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
 
-      - run: gsutil cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf ./0-org-setup-providers.tf
+      - run: gcloud storage cp gs://brnfresh-prod-iac-core-0-iac-outputs/providers/0-org-setup-providers.tf ./0-org-setup-providers.tf
       - run: terraform init -reconfigure -no-color
       - run: terraform apply -auto-approve -no-color
 ```
