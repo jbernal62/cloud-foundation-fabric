@@ -88,7 +88,7 @@ locals {
   # generate workflow files contents
   cicd_workflows_contents = {
     for k, v in local.cicd_workflows : k => templatefile(
-      "assets/workflow-${v.repository.type}.yaml", merge(v, {
+      "assets/workflow-${v.repository.type}.yaml.tftpl", merge(v, {
         outputs_bucket             = local.of_outputs_bucket
         stage_name                 = k
         workload_identity_provider = v.workload_identity.provider
