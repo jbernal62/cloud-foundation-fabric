@@ -1894,13 +1894,7 @@ values:
       reset: null
       rules:
       - allow_all: null
-        condition:
-        - description: null
-          expression: '!resource.matchTag(''1234567890/org-policies'', ''allowed-essential-contacts-domains-all'')
-
-            '
-          location: null
-          title: Restrict essential contacts domains
+        condition: []
         deny_all: null
         enforce: null
         parameters: null
@@ -1908,18 +1902,6 @@ values:
         - allowed_values:
           - '@example.org'
           denied_values: null
-      - allow_all: 'TRUE'
-        condition:
-        - description: null
-          expression: 'resource.matchTag(''1234567890/org-policies'', ''allowed-essential-contacts-domains-all'')
-
-            '
-          location: null
-          title: Allow essential contacts from any domain
-        deny_all: null
-        enforce: null
-        parameters: null
-        values: []
     timeouts: null
   module.organization-iam[0].google_org_policy_policy.default["gcp.resourceLocations"]:
     dry_run_spec: []
