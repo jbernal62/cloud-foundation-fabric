@@ -15,37 +15,35 @@
 # yaml-language-server: $schema=../../schemas/defaults.schema.json
 
 global:
-  # use `gcloud beta billing accounts list` to populate
-  billing_account: ABCDEF-0123456-ABCDEF
+  billing_account: 01822A-82C726-7D1D60
   organization:
-    # use `gcloud organizations list`` to populate
-    domain: fast-test-00.example.com
-    id: 1234567890
-    customer_id: abcd123456
+    domain: bernal.live
+    id: 874229980578
+    customer_id: C044gz3of
+
 observability:
   project_id: $project_ids:log-0
   number: $project_numbers:log-0
+
 projects:
   defaults:
-    # prefix must be unique and less than 9 characters
-    prefix: test00
+    prefix: brnfresh
     locations:
-      bigquery: $locations:primary
-      logging: $locations:primary
-      storage: $locations:primary
+      bigquery: us-central1
+      logging: us-central1
+      storage: us-central1
   overrides: {}
+
 context:
-  # you can populate context variables here for use in YAML replacements
   email_addresses:
-    gcp-organization-admins: gcp-organization-admins@example.com
+    gcp-organization-admins: gcp-org-admins@bernal.live
   iam_principals:
-    # this is the default group used in bootstrap, initial user must be a member
-    gcp-organization-admins: group:gcp-organization-admins@example.com
+    gcp-organization-admins: group:gcp-org-admins@bernal.live
   locations:
-    primary: europe-west1
+    primary: us-central1
+
 output_files:
-  # local path is optional but recommended when starting
-  local_path: ~/fast-config/fast-test-00
+  local_path: /Users/jbernal/Documents/dev/jbernal62/cloud-foundation-fabric/fast-config/bernal-live
   storage_bucket: $storage_buckets:iac-0/iac-outputs
   providers:
     0-org-setup:
