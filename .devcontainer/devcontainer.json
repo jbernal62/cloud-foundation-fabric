@@ -1,0 +1,78 @@
+{
+  "name": "cloud-devops-environment",
+
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+
+  "features": {
+    // --------------------------
+    // CLOUD CLIs
+    // --------------------------
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "2.60.0"
+    },
+
+    "ghcr.io/devcontainers/features/gcloud:1": {},
+
+    // --------------------------
+    // PYTHON
+    // --------------------------
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    },
+
+    // --------------------------
+    // DEVOPS / PLATFORM TOOLS
+    // --------------------------
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
+
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "1.8.4"
+    }
+  },
+
+  // --------------------------
+  // ENVIRONMENT VARIABLES
+  // --------------------------
+  "containerEnv": {
+    "CLOUDSDK_CORE_DISABLE_PROMPTS": "1",
+    "TF_PLUGIN_CACHE_DIR": "/workspaces/.terraform.d/plugin-cache",
+    "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+
+  // --------------------------
+  // VS CODE CUSTOMIZATION
+  // --------------------------
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-azuretools.vscode-azurecli",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "hashicorp.terraform",
+        "redhat.vscode-yaml",
+        "github.vscode-github-actions",
+        "eamodio.gitlens",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "terraform.languageServer.enable": true
+      }
+    }
+  },
+
+  // --------------------------
+  // POST-CREATE COMMAND
+  // --------------------------
+  "postCreateCommand": [
+    "pip install --upgrade pip",
+    "pip install black flake8 pylint pytest rich",
+    "mkdir -p /workspaces/.terraform.d/plugin-cache"
+  ],
+
+  "remoteUser": "codespace"
+}
